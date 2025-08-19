@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tRPC Tester</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-code text-blue-600 mr-3"></i>tRPC Tester
+            </h1>
+            <p class="text-gray-600 text-lg">Test and debug your tRPC endpoints with ease</p>
+        </div>
+
+        <!-- Configuration Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-semibold text-gray-800">
+                    <i class="fas fa-cog text-green-600 mr-2"></i>Server Configuration
+                </h2>
+                <div id="configStatus" class="text-sm text-gray-500">
+                    <i class="fas fa-circle text-yellow-500 mr-1"></i>Loading...
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Base URL</label>
+                    <input type="url" id="baseUrl" placeholder="https://your-api.com" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Custom Headers (JSON)</label>
+                    <textarea id="customHeaders" placeholder='{"Authorization": "Bearer token"}' rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="sslVerify" class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="text-sm font-medium text-gray-700">Enable SSL Verification</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1">Uncheck for self-signed certificates or development servers</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Authentication Cookie</label>
+                    <textarea id="authCookie" placeholder="__worldliberty_session_token=your_token_here" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Enter the full cookie string (e.g., name=value; Expires=...)</p>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button onclick="saveConfig()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>Save Configuration
+                </button>
+                <button onclick="testConnection()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                    <i class="fas fa-plug mr-2"></i>Test Connection
+                </button>
+                <button onclick="loadProcedures()" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-list mr-2"></i>Load Procedures
+                </button>
+                <button onclick="testAuth()" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-key mr-2"></i>Test Auth
+                </button>
+                <button onclick="resetConfig()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">
+                    <i class="fas fa-undo mr-2"></i>Reset Config
+                </button>
+            </div>
+        </div>
+
+        <!-- Procedures Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6" id="proceduresSection" style="display: none;">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-list text-purple-600 mr-2"></i>Available Procedures
+            </h2>
+            <div id="proceduresList" class="space-y-2"></div>
+        </div>
+
+        <!-- Testing Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-play text-orange-600 mr-2"></i>Test Procedure
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Procedure Path</label>
+                    <input type="text" id="procedurePath" placeholder="user.create" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        HTTP Method
+                        <span class="text-xs text-gray-500 ml-1">(GET uses query params, POST uses body)</span>
+                    </label>
+                    <select id="httpMethod" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="POST">POST</option>
+                        <option value="GET">GET</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Timeout (seconds)</label>
+                    <input type="number" id="timeout" value="30" min="1" max="300"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">tRPC Format</label>
+                    <select id="trpcFormat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="standard">Standard (Direct Input)</option>
+                        <option value="json">JSON ({"json": data})</option>
+                        <option value="modern">Modern ({"input": data})</option>
+                        <option value="legacy">Legacy ({"0": {"json": data}})</option>
+                        <option value="batch">Batch ([{"path": "...", "input": data}])</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Select the tRPC request format your server expects</p>
+                </div>
+            </div>
+            
+            <!-- Input Mode Toggle -->
+            <div class="mb-4">
+                <div class="flex items-center space-x-4 mb-3">
+                    <label class="text-sm font-medium text-gray-700">Input Mode:</label>
+                    <div class="flex space-x-2">
+                        <button id="jsonModeBtn" onclick="app.setInputMode('json')" 
+                                class="px-3 py-1 text-sm rounded-md transition-colors input-mode-btn active">
+                            JSON Editor
+                        </button>
+                        <button id="formModeBtn" onclick="app.setInputMode('form')" 
+                                class="px-3 py-1 text-sm rounded-md transition-colors input-mode-btn">
+                            Form Builder
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- JSON Mode -->
+                <div id="jsonMode" class="input-mode">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" id="inputDataLabel">Input Data (JSON)</label>
+                    <textarea id="inputData" placeholder='{"name": "John", "email": "john@example.com"}' rows="4"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                </div>
+                
+                <!-- Form Mode -->
+                <div id="formMode" class="input-mode hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Form Fields</label>
+                    <div id="formFields" class="space-y-3">
+                        <!-- Form fields will be dynamically added here -->
+                    </div>
+                    <button onclick="app.addFormField()" class="mt-3 bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 transition-colors text-sm">
+                        <i class="fas fa-plus mr-1"></i>Add Field
+                    </button>
+                </div>
+            </div>
+            <button onclick="testProcedure()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                <i class="fas fa-rocket mr-2"></i>Test Procedure
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-white rounded-lg shadow-md p-6" id="resultsSection" style="display: none;">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-chart-line text-indigo-600 mr-2"></i>Test Results
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Request Details -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Request Details</h3>
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <div class="mb-2">
+                            <span class="font-medium">URL:</span>
+                            <span id="requestUrl" class="text-blue-600 break-all"></span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium">Method:</span>
+                            <span id="requestMethod" class="text-green-600"></span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium">Headers:</span>
+                            <pre id="requestHeaders" class="text-sm bg-white p-2 rounded mt-1 overflow-x-auto"></pre>
+                        </div>
+                        <div>
+                            <span class="font-medium" id="requestBodyLabel">Body:</span>
+                            <pre id="requestBody" class="text-sm bg-white p-2 rounded mt-1 overflow-x-auto"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Details -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Response Details</h3>
+                    <div class="bg-gray-50 p-4 rounded-md">
+                        <div class="mb-2">
+                            <span class="font-medium">Status:</span>
+                            <span id="responseStatus" class="font-bold"></span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium">Headers:</span>
+                            <pre id="responseHeaders" class="text-sm bg-white p-2 rounded mt-1 overflow-x-auto"></pre>
+                        </div>
+                        <div>
+                            <span class="font-medium">Body:</span>
+                            <pre id="responseBody" class="text-sm bg-white p-2 rounded mt-1 overflow-x-auto"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="statusBar" class="bg-gray-800 text-white px-4 py-2 rounded-md shadow-lg hidden toast">
+            <span id="statusMessage"></span>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    <!-- Global function wrappers for onclick handlers -->
+    <script>
+        function saveConfig() { app.saveConfig(); }
+        function testConnection() { app.testConnection(); }
+        function loadProcedures() { app.loadProcedures(); }
+        function testAuth() { app.testAuth(); }
+        function resetConfig() { app.resetConfig(); }
+        function testProcedure() { app.testProcedure(); }
+        function setInputMode(mode) { app.setInputMode(mode); }
+        function addFormField() { app.addFormField(); }
+    </script>
+</body>
+</html>
