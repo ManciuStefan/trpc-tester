@@ -12,6 +12,12 @@ A simple Python web application for testing and debugging tRPC endpoints. Built 
 - ⌨️ **Keyboard Shortcuts**: Quick access to common actions
 - 📱 **Mobile Friendly**: Responsive design that works on all devices
 
+## ☕ Support the Project
+
+If you find this tool helpful, consider buying me a coffee! Your support helps keep this project maintained and improved.
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%23FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/stefanmanciu)
+
 ## Installation
 
 1. **Clone or download the project files**
